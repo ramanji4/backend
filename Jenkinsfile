@@ -27,7 +27,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh """
-                docker build -t ramanji4/backend:${appVersion}
+                docker build -t ramanji4/backend:${appVersion} .
                 docker images
                 """
             }
