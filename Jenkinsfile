@@ -19,10 +19,9 @@ pipeline {
                 }
             }
         }
-        stage('Build') {
+        stage('Install Dependencies') {
             steps {
-                sh 'echo This is Build'
-                //sh 'sleep 10'
+                sh 'npm install'
             }
         }
         stage('Test') {
