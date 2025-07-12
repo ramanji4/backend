@@ -24,11 +24,12 @@ pipeline {
                 sh 'npm install'
             }
         }
-        stage('Test') {
+        stage('Docker Build') {
             steps {
-                retry(2) {
-                    sh 'echo This is test'
-                }
+                sh """
+                docker build -t ramanji4/backend:${appVersion}
+                docker images
+                """
             }
         }
         stage('Deploy') {
