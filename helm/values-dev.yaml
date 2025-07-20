@@ -1,0 +1,7 @@
+configMap:
+  db_host: 
+deployment:
+  imageURL: 
+  imageVersion: v1
+hpa:
+  cpuUtilization: 20

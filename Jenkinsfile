@@ -7,7 +7,12 @@ pipeline {
         disableConcurrentBuilds()
     }
     environment{
-        appVersion = '' 
+        appVersion = ''
+        region = 'us-east-1'
+        account_id = '532897706341'
+        project = 'expense'
+        environment = 'dev'
+        component = 'backend'
     }
     stages {
         stage('Read the version') {
@@ -26,47 +31,29 @@ pipeline {
         }
         stage('Docker Build') {
             steps {
-                sh """
-                docker build -t ramanji4/backend:${appVersion} .
-                docker images
-                """
+                withAWS(region: 'us-east-1', credentials: 'aws-cred') {
+                    sh """
+                    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account_id}.dkr.ecr.us-east-1.amazonaws.com
+                    docker build -t ${account_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion} .
+
+                    docker images
+
+                    docker push ${account_id}.dkr.ecr.us-east-1.amazonaws.com/${project}/${component}:${appVersion}
+                    
+                    """
+                }
             }
         }
         stage('Deploy') {
-            // when {
-            //     branch 'production'
-            // }
-            when {
-                expression { env.GIT_BRANCH == "origin/main"}
-            }
             steps {
-                sh 'echo This is deploy'
-            }
-        }
-        stage('Print Params') {
-            steps{
-                echo "Hello ${params.PERSON}"
-
-                echo "Biography: ${params.BIOGRAPHY}"
-
-                echo "Toggle: ${params.TOGGLE}"
-
-                echo "Choice: ${params.CHOICE}"
-
-                echo "Password: ${params.PASSWORD}"
-            }
-        }
-        stage('Approval') {
-            input {
-                message "Should we continue?"
-                ok "Yes, we should."
-                submitter "alice,bob"
-                parameters {
-                    string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?')
-                }
-            }
-            steps {
-                echo "Hello, ${PERSON}, nice to meet you."
+                withAWS(region: 'us-east-1', credentials: 'aws-cred') {
+                    sh """
+                        aws eks update-kubeconfig --region ${region}  --name ${project}-${environment}
+                        cd helm
+                        sed -i 's/IMAGE_VERSION/${appVersion}/g' values-${environment}.yaml
+                        helm upgrade --install ${component} -n ${project} -f values-${environment}.yaml .
+                    """
+                }              
             }
         }
     }
